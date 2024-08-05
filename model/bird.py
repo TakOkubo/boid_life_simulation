@@ -88,11 +88,12 @@ class Bird:
 		self.health_point -= self.speed_param
 
 		# 加速度ベクトルを求める。
-		if self.search_food and self.health_point < self.speed_param * 10:
-			# 近くに餌がある場合は優先して餌を取りに行く
-			self.acceleration = self.acceleration_to_food
-		else:
-			self.acceleration = self.acceleration_to_cohere + self.acceleration_to_separate + self.acceleration_to_align + self.acceleration_to_food
+		self.acceleration = (
+			self.acceleration_to_cohere 
+			+ self.acceleration_to_separate 
+			+ self.acceleration_to_align 
+			+ self.acceleration_to_food
+			)
 		
 		# 加速度ベクトルと速度ベクトルの和から進行方向を求める。
 		vector = self.velocity + self.acceleration
