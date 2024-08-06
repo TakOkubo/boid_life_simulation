@@ -1,9 +1,9 @@
 import pygame
 import random
-import sys
 from model.bird import Bird
 from model.distance import Distance
 from model.food import Food
+from component.bird.bird_csv_component import BirdCsvComponent
 
 # 群れの総数
 BIRD_NUM = 100
@@ -26,8 +26,14 @@ def main():
 
 	# 鳥の生成
 	bird_list = []
+	last_index = bird_num - 1
 	for i in range(bird_num):
 		bird_list.append(Bird(i, width, height))
+	
+	birdCsvComponent = BirdCsvComponent(bird_list=bird_list)
+	# CSVファイルの書き込み
+	birdCsvComponent.write_csv()
+	print("CSVファイルに書き込みました")
 
 	# 餌の生成
 	food_list = []
@@ -62,7 +68,7 @@ def main():
 				# 餌を追いかける
 				bird.cohere_food(food_list)
 				# 行動
-				bird.move(food_list)
+				bird.move()
 				# 食事
 				bird.eat_food(food_list, bird_list, distances_list)
 
@@ -72,7 +78,10 @@ def main():
 					over_bird_list.append(bird)
 				else:
 					# 鳥の繁殖
-					bird.born(bird_list, distances_list)
+					child_bird = bird.born(last_index, bird_list, distances_list)
+					if child_bird is not None:
+						birdCsvComponent.append_to_csv(child_bird)
+						last_index = child_bird.bird_id
 			else:
 				# 寿命がなくなると死亡する
 				print('lifespan over')
@@ -108,7 +117,8 @@ def main():
 					food_list.append(Food(random.uniform(0, width) ,random.uniform(0, height)))
 		else:
 			print("鳥が絶滅しましたので、プログラムを終了します。")
-			sys.exit()
+			pygame.quit()
+			break
 
 		# 画面に設定を表示
 		display_rendered_text(
