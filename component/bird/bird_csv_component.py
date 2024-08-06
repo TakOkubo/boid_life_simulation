@@ -1,4 +1,5 @@
 import os
+import pandas as pd
 from util.csv_util import CsvUtil
 
 CSV_DIRECTORY = ".\\data"
@@ -9,12 +10,19 @@ class BirdCsvComponent:
 	鳥のデータをCSVへ読み書きするコンポーネント
 	"""
 	def __init__(self, bird_list):
-		self.header = ["bird_id", "generation_id", "speed", "power_of_cohere", "radius_of_cohere", "power_of_separate", "radius_of_separate", "power_of_align", "radius_of_align", "power_of_food", "radius_of_food", "radius_of_born"]
 		self.bird_list = bird_list
 
 	def add_bird(self, bird):
 		"""鳥をリストに追加する"""
 		self.bird_list.append(bird)
+	
+	def read_csv(self):
+		"""鳥のCSVデータを読み込む"""
+		csvUtil = CsvUtil()
+		data = []
+
+		filePath = CSV_DIRECTORY + "\\" + CSV_FILE_NAME
+		return csvUtil.read_csv(filePath)
 
 	def write_csv(self):
 		"""鳥のデータをCSVに書き込み"""
@@ -24,14 +32,15 @@ class BirdCsvComponent:
 
 		csvUtil = CsvUtil()
 		data = []
-
-		data.append(self.header)
 		for bird in self.bird_list:
 			bird_data = self.create_data(bird)
 			data.append(bird_data)
-		
+
+		# データをDataFrameに変換
+		df = pd.DataFrame(data)
+
 		filePath = CSV_DIRECTORY + "\\" + CSV_FILE_NAME
-		csvUtil.write_csv(filePath, data)
+		csvUtil.write_csv(filePath, df)
 
 	def append_to_csv(self, bird):
 		"""新たに生まれた鳥のデータを書き込み"""
@@ -46,19 +55,20 @@ class BirdCsvComponent:
 	def create_data(self, bird):
 		"""鳥のデータを加工"""
 		if bird is not None:
-			return [
-					bird.bird_id, 
-					bird.generation_id, 
-					bird.speed_param, 
-					bird.cohere_param[0], 
-					bird.cohere_param[1], 
-					bird.separate_param[0], 
-					bird.separate_param[1], 
-					bird.align_param[0], 
-					bird.align_param[1], 
-					bird.food_param[0], 
-					bird.food_param[1], 
-					bird.born_param[1]
-				]
+			return {
+					'bird_id': bird.bird_id, 
+					'generation_id': bird.generation_id, 
+					'speed': bird.speed_param, 
+					'power_of_cohere': bird.cohere_param[0], 
+					'radius_of_cohere': bird.cohere_param[1], 
+					'power_of_separate': bird.separate_param[0], 
+					'radius_of_separate': bird.separate_param[1], 
+					'power_of_align': bird.align_param[0], 
+					'radius_of_align': bird.align_param[1], 
+					'power_of_food': bird.food_param[0], 
+					'radius_of_food': bird.food_param[1], 
+					'radius_of_born': bird.born_param[1]
+			}
+
 		else:
-			return []
+			return {}

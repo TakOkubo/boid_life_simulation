@@ -11,24 +11,26 @@ BIRD_COLORS = [
 BIRD_SPEED = 20
 
 # 集合ルール
-POWER_OF_COHERE = 100
+POWER_OF_COHERE = 1000
 RADIUS_OF_COHERE = 300
 # 分離ルール
-POWER_OF_SEPARATE = 100
+POWER_OF_SEPARATE = 1000
 RADIUS_OF_SEPARATE = 300
 # 整列ルール
-POWER_OF_ALIGN = 100
+POWER_OF_ALIGN = 1000
 RADIUS_OF_ALIGN = 300
 
 # 繁殖ルール
-RADIUS_OF_BORN = 100
+RADIUS_OF_BORN = 300
 
 # 食事ルール
-POWER_OF_FOOD = 100
+POWER_OF_FOOD = 1000
 RADIUS_OF_FOOD = 300
 
 # HP
 HEALTH_POINT = 500
+# 寿命の最大値
+LIFESPAN_POINT = 1000
 
 # 突然変異ルール
 MUTATION_RATE = 0.01
@@ -84,7 +86,7 @@ class Bird:
 		self.health_point = health_point
 		self.radius = self.health_point / 100.0
 		# 鳥の寿命
-		self.lifespan = random.randint(200, self.health_point)
+		self.lifespan = random.randint(200, LIFESPAN_POINT)
 		# 鳥の形状
 		self.polygon = np.array([(20, 0), (0, 5), (0, -5)])
 		self.type_id = type_id if type_id else self.bird_id % 3
@@ -181,7 +183,7 @@ class Bird:
 			pair_bird_index = next((i for i in range(len(bird_list)) if bird_list[i].bird_id == pair_bird.bird_id), -1)
 
 			if pair_bird.health_point < 500 or pair_bird_index == -1:
-				return
+				return None
 			
 			# 両親のhealth_pointを減らす
 			self.health_point -= 200
@@ -207,7 +209,7 @@ class Bird:
 			# 子供の初期位置
 			child_position = np.array([random.uniform(0, self.width), random.uniform(0, self.height)])
 			# 子供の世代数
-			child_generation_id = self.generation_id + pair_bird.generation_id
+			child_generation_id = max(self.generation_id, pair_bird.generation_id) + 1
 
 			child_bird = Bird(
 				bird_id=last_index + 1,
