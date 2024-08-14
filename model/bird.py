@@ -8,8 +8,13 @@ BIRD_COLORS = [
 	'#80FF25',  # green
 	'#A0D4FF',  # skyblue
 ]
-BIRD_SPEED = 20
 
+# -----------------------------------------
+# パラメータをランダムに生成する場合の最大値/最小値
+# 遺伝的アルゴリズムを利用する場合(IS_USE_GA = Trueの場合)利用します。
+# -----------------------------------------
+# 動きの速さ
+BIRD_SPEED = 20
 # 集合ルール
 POWER_OF_COHERE = 1000
 RADIUS_OF_COHERE = 300
@@ -19,14 +24,11 @@ RADIUS_OF_SEPARATE = 300
 # 整列ルール
 POWER_OF_ALIGN = 1000
 RADIUS_OF_ALIGN = 300
-
 # 繁殖ルール
 RADIUS_OF_BORN = 300
-
 # 食事ルール
 POWER_OF_FOOD = 1000
 RADIUS_OF_FOOD = 300
-
 # HP
 HEALTH_POINT = 500
 # 寿命の最大値
@@ -36,7 +38,11 @@ LIFESPAN_POINT = 1000
 MUTATION_RATE = 0.01
 MUTATION_POWER_RATE = 2
 MUTATION_RADIUS_RATE = 2
+#
+# -----------------------------------------
+#
 
+# 鳥モデル
 class Bird:
 	def __init__(self,
 			bird_id,
@@ -52,6 +58,7 @@ class Bird:
 			born_param = None,
 			position = None,
 			health_point = HEALTH_POINT,
+			lifespan = None,
 			generation_id = None
 	):
 		self.bird_id = bird_id
@@ -80,18 +87,16 @@ class Bird:
 		self.acceleration_to_separate = np.array([0, 0])
 		self.acceleration_to_align = np.array([0, 0])
 		self.acceleration_to_food = np.array([0, 0])
-		# 近くで餌を見つけた
-		self.search_food = False
 		# 鳥のHP
 		self.health_point = health_point
-		self.radius = self.health_point / 100.0
 		# 鳥の寿命
-		self.lifespan = random.randint(200, LIFESPAN_POINT)
+		self.lifespan = lifespan if lifespan is not None else random.randint(200, LIFESPAN_POINT)
 		# 鳥の形状
 		self.polygon = np.array([(20, 0), (0, 5), (0, -5)])
 		self.type_id = type_id if type_id else self.bird_id % 3
 		self.color = BIRD_COLORS[self.type_id]
 
+	# 行動
 	def move(self):
 		# 体力を消費する
 		self.health_point -= self.speed_param
@@ -169,8 +174,8 @@ class Bird:
 		else:
 			self.acceleration_to_align = np.array([0,0])
 	
-	# 鳥の繁殖ルール
-	def born(self, last_index, bird_list, distance_l):
+	# 繁殖ルール
+	def born(self, last_index, bird_list, distance_l, is_use_ga):
 		power, radius = self.born_param
 
 		near_birds = self.get_near_bird_list(bird_list, distance_l, radius, True)
@@ -179,7 +184,7 @@ class Bird:
 		child_bird = None
 		if self.health_point > 500 and len(near_birds_without_parent) > 0:
 			# HPが最も高い鳥を選択する
-			pair_bird = max(near_birds_without_parent, key=lambda bird: bird.health_point)
+			pair_bird: Bird = max(near_birds_without_parent, key=lambda bird: bird.health_point)
 			pair_bird_index = next((i for i in range(len(bird_list)) if bird_list[i].bird_id == pair_bird.bird_id), -1)
 
 			if pair_bird.health_point < 500 or pair_bird_index == -1:
@@ -191,16 +196,26 @@ class Bird:
 
 			# 交叉と突然変異による子供のパラメータ生成
 			def blend_param(param1, param2):
-				return (param1[0] + param2[0]) / 2 , round((param1[1] + param2[1]) / 2)  
+				if is_use_ga:
+					# 体力がある方のパラメータを優先して返します。
+					if self.health_point >= pair_bird.health_point:
+						return param1
+					else:
+						return param2
+					# 両親の平均を取る場合はこちらを利用してみてください。
+					# return (param1[0] + param2[0]) / 2 , round((param1[1] + param2[1]) / 2) 
+				else:
+					# 遺伝的アルゴリズムを利用しないため、自身のパラメータを返します。
+					return param1
 			
 			def mutate_param(param):
-				if random.uniform(0, 1) <= MUTATION_RATE:
+				if is_use_ga and random.uniform(0, 1) <= MUTATION_RATE:
 					print("occur mutation")
 					return (random.uniform(0, param[0] * MUTATION_POWER_RATE), random.randint(0, param[1] * MUTATION_RADIUS_RATE))
 
 				return param
-			
-			child_speed_param = int((self.speed_param + pair_bird.speed_param) /2)
+
+			child_speed_param = mutate_param(blend_param((0, self.speed_param), (0, pair_bird.speed_param)))[1]
 			child_cohere_param = mutate_param(blend_param(self.cohere_param, pair_bird.cohere_param))
 			child_separate_param = mutate_param(blend_param(self.separate_param, pair_bird.separate_param))
 			child_align_param = mutate_param(blend_param(self.align_param, pair_bird.align_param))
@@ -211,6 +226,7 @@ class Bird:
 			# 子供の世代数
 			child_generation_id = max(self.generation_id, pair_bird.generation_id) + 1
 
+			# 子供を生成します
 			child_bird = Bird(
 				bird_id=last_index + 1,
 				width=self.width,
@@ -229,10 +245,9 @@ class Bird:
 			bird_list[pair_bird_index] = pair_bird
 			print("child born")
 
-		self.radius = self.health_point / 100.0
 		return child_bird
 	
-	# 餌を追いかける
+	# 餌の探索ルール
 	def cohere_food(self, food_list):
 		# 力と角度
 		power, radius = self.food_param
@@ -247,7 +262,6 @@ class Bird:
 		]
 
 		if len(near_food) > 0 :
-			self.search_food = True
 			# 最も近い餌を選択する
 			most_near_food = min(near_food, key=lambda food: np.linalg.norm(np.array([food.x, food.y]) - np.array([x, y])))
 			near_food_position = np.array([most_near_food.x, most_near_food.y])
@@ -258,7 +272,6 @@ class Bird:
 				# 餌に向かうように加速度を計算
 				self.acceleration_to_food = power * (vector/np.square(np.linalg.norm(vector))) # 2次元世界なので、逆1乗則にします
 		else:
-			self.search_food = False
 			self.acceleration_to_food = np.array([0,0])
 	
 	# 食事ルール
@@ -299,7 +312,7 @@ class Bird:
 
 		return near_birds
 
-	def display(self, screen):		
+	def display(self, screen):
 		# 回転行列を形成
 		rotation_matrix = np.array([[np.cos(self.direction), -np.sin(self.direction)],
 									[np.sin(self.direction), np.cos(self.direction)]])
