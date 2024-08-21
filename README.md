@@ -12,7 +12,7 @@
 - 繁殖
 
 詳細はブログ記事にあげますので、そちらを参照してください。  
-[豆蔵デベロッパーサイト](https://developer.mamezou-tech.com/blogs/)
+[【夏休みの自由研究】人工生命による生態系シミュレーションで、生命の絶滅を回避する方法を模索してみた｜豆蔵デベロッパーサイト](https://developer.mamezou-tech.com/blogs/2024/08/21/boid_life_simulation/)
 
 ## 実行について
 main.pyを実行すると、PyGameによるシミュレーションが実施できます。  
